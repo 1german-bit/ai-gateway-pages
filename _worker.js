@@ -92,9 +92,14 @@ export default {
       return json(200, { status: "ok", ts: Date.now() });
     }
 
-    // 鉴权：客户端必须带 Authorization: Bearer <访问令牌>
+    // 鉴权：客户端必须带正确令牌。
+    // 优先读 Authorization: Bearer <令牌>（OpenAI 兼容客户端）；
+    // 若没有，接受 x-goog-api-key: <令牌>（Gemini 原生客户端，如 ChatBox 的 Gemini 模式）。
     const auth = request.headers.get("Authorization") || "";
-    const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+    let token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+    if (!token) {
+      token = request.headers.get("x-goog-api-key") || "";
+    }
     if (!env.ACCESS_TOKEN || !timingSafeEqualStr(token, env.ACCESS_TOKEN)) {
       return json(401, { error: { message: "unauthorized" } });
     }
@@ -163,4 +168,6 @@ export default {
       headers: respHeaders,
     });
   },
+};
+
 };
